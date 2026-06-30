@@ -55,6 +55,12 @@ a{text-decoration:none}
 .dot-teal{background:#0E7490}
 .card-col{flex:1;min-width:0}
 .card-common{background:white;border-radius:12px;padding:13px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.card-common.card-live{border:1.5px solid #1A3A5C;background:#EEF3F8}
+.live-badge{display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#1A3A5C;animation:livepulse 1.8s infinite;flex-shrink:0}
+.live-text{font-size:9px;font-weight:700;color:#1A3A5C;letter-spacing:0.08em}
+.time-text.time-live{color:#1A3A5C}
+@keyframes livepulse{0%,100%{opacity:1}50%{opacity:0.25}}
 .card-break{background:#EDEAE4;border-radius:8px;padding:8px 12px}
 .card-meal{background:#FFF9F0;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
 .card-split{display:flex;flex-direction:column;gap:6px}
@@ -261,6 +267,23 @@ a{text-decoration:none}
 </div>
 <script>
 var state={page:'schedule',day:1,track:'all'};
+function getAutoDay(){
+  var now=new Date();
+  var m=now.getMonth()+1,d=now.getDate();
+  if(m>8||(m===8&&d>=8))return 2;
+  return 1;
+}
+function getCurrentIdx(items){
+  var now=new Date();
+  var cur=now.getHours()*60+now.getMinutes();
+  function toMin(t){var p=t.split(':');return parseInt(p[0])*60+parseInt(p[1]);}
+  for(var i=0;i<items.length;i++){
+    var start=toMin(items[i].time);
+    var end=i+1<items.length?toMin(items[i+1].time):toMin(items[items.length-1].time)+50;
+    if(cur>=start&&cur<end)return i;
+  }
+  return -1;
+}
 var day1=[
   {time:'09:00',type:'common',chip:'공통',title:'등록 및 팀원 소개',speaker:''},
   {time:'09:30',type:'common',chip:'공통',title:'프로그램 소개 · 안전수칙 · 이수기준 교육',speaker:'고우넷 박은경 본부장'},
@@ -302,11 +325,15 @@ var day2=[
 ];
 function renderTimeline(){
   var items=state.day===1?day1:day2,track=state.track,html='';
+  var liveIdx=getCurrentIdx(items);
+  var live='<div class="live-badge"><div class="live-dot"></div><span class="live-text">진행 중</span></div>';
   for(var i=0;i<items.length;i++){
-    var item=items[i],dc='dot-gray',card='';
+    var item=items[i],dc='dot-gray',card='',isLive=(i===liveIdx);
+    var liveClass=isLive?' card-live':'';
+    var timeClass=isLive?' time-live':'';
     if(item.type==='common'){
       dc='dot-navy';
-      card='<div class="card-common"><div class="card-bar"><div class="bar bar-navy"></div><span class="card-chip chip-navy">'+item.chip+'</span></div><div class="card-title">'+item.title+'</div>'+(item.speaker?'<div class="card-speaker">'+item.speaker+'</div>':'')+'</div>';
+      card='<div class="card-common'+liveClass+'">'+(isLive?live:'')+'<div class="card-bar"><div class="bar bar-navy"></div><span class="card-chip chip-navy">'+item.chip+'</span></div><div class="card-title">'+item.title+'</div>'+(item.speaker?'<div class="card-speaker">'+item.speaker+'</div>':'')+'</div>';
     }else if(item.type==='break'){
       card='<div class="card-break"><span class="card-break-text">'+item.title+'</span></div>';
     }else if(item.type==='meal'){
@@ -317,16 +344,20 @@ function renderTimeline(){
       var se=track==='all'||track==='elem',sm=track==='all'||track==='mid';
       if(!se&&!sm)continue;
       card='<div class="card-split">';
-      if(se)card+='<div class="card-common"><div class="card-bar"><div class="bar bar-elem"></div><span class="card-chip chip-elem">'+item.elem.chip+'</span></div><div class="card-title">'+item.elem.title+'</div><div class="card-speaker">'+item.elem.speaker+'</div></div>';
-      if(sm)card+='<div class="card-common"><div class="card-bar"><div class="bar bar-mid"></div><span class="card-chip chip-mid">'+item.mid.chip+'</span></div><div class="card-title">'+item.mid.title+'</div><div class="card-speaker">'+item.mid.speaker+'</div></div>';
+      if(se)card+='<div class="card-common'+liveClass+'">'+(isLive?live:'')+'<div class="card-bar"><div class="bar bar-elem"></div><span class="card-chip chip-elem">'+item.elem.chip+'</span></div><div class="card-title">'+item.elem.title+'</div><div class="card-speaker">'+item.elem.speaker+'</div></div>';
+      if(sm)card+='<div class="card-common'+liveClass+'">'+(isLive?live:'')+'<div class="card-bar"><div class="bar bar-mid"></div><span class="card-chip chip-mid">'+item.mid.chip+'</span></div><div class="card-title">'+item.mid.title+'</div><div class="card-speaker">'+item.mid.speaker+'</div></div>';
       card+='</div>';
     }else if(item.type==='level'){
       dc='dot-teal';
-      card='<div class="card-split"><div class="card-common"><div class="card-bar"><div class="bar bar-basic"></div><span class="card-chip chip-basic">'+item.basic.chip+'</span></div><div class="card-title">'+item.basic.title+'</div><div class="card-speaker">'+item.basic.speaker+'</div></div><div class="card-common"><div class="card-bar"><div class="bar bar-advanced"></div><span class="card-chip chip-advanced">'+item.advanced.chip+'</span></div><div class="card-title">'+item.advanced.title+'</div><div class="card-speaker">'+item.advanced.speaker+'</div></div></div>';
+      card='<div class="card-split"><div class="card-common'+liveClass+'">'+(isLive?live:'')+'<div class="card-bar"><div class="bar bar-basic"></div><span class="card-chip chip-basic">'+item.basic.chip+'</span></div><div class="card-title">'+item.basic.title+'</div><div class="card-speaker">'+item.basic.speaker+'</div></div><div class="card-common'+liveClass+'">'+(isLive?live:'')+'<div class="card-bar"><div class="bar bar-advanced"></div><span class="card-chip chip-advanced">'+item.advanced.chip+'</span></div><div class="card-title">'+item.advanced.title+'</div><div class="card-speaker">'+item.advanced.speaker+'</div></div></div>';
     }
-    html+='<div class="timeline-row"><div class="time-col"><div class="time-text">'+item.time+'</div><div class="dot '+dc+'"></div></div><div class="card-col">'+card+'</div></div>';
+    html+='<div class="timeline-row'+(isLive?' row-live':'')+'"><div class="time-col"><div class="time-text'+timeClass+'">'+item.time+'</div><div class="dot '+dc+'"></div></div><div class="card-col">'+card+'</div></div>';
   }
   document.getElementById('timeline').innerHTML=html;
+  if(liveIdx>=0){
+    var liveEl=document.querySelector('.row-live');
+    if(liveEl)setTimeout(function(){liveEl.scrollIntoView({behavior:'smooth',block:'center'});},300);
+  }
 }
 function setPage(page){
   state.page=page;
@@ -348,6 +379,9 @@ function setTrack(track){
   document.getElementById('btn-mid').className='track-btn '+(track==='mid'?'active-mid':'inactive');
   renderTimeline();
 }
+state.day=getAutoDay();
+document.getElementById('tab-day1').className='day-tab '+(state.day===1?'active':'inactive');
+document.getElementById('tab-day2').className='day-tab '+(state.day===2?'active':'inactive');
 renderTimeline();
 </script>
 </body>
